@@ -22,7 +22,6 @@ No if, elif, else, for, while or glob is used.
 
 import os
 import cv2
-
 import projection_v2
 
 

@@ -1,6 +1,7 @@
 # This file contains the functions
 # used for histogram projections,
 # so the main.py file is more efficient.
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 

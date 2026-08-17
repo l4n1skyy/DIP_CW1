@@ -3,9 +3,10 @@
 """
 Task B - Paragraph Extraction
 
-BATCH VERSION
+Batch Processing Version
 
-This program processes:
+The program processes:
+
     001.png
     002.png
     003.png
@@ -15,56 +16,63 @@ This program processes:
     007.png
     008.png
 
-The images are read from the input folder.
+Input images are stored inside:
 
-The results are saved into:
+    input/
 
-    output/001
-    output/002
+Results are stored inside:
+
+    output/001/
+    output/002/
     ...
-    output/008
-
-No if, elif, else, for, while or glob is used.
+    output/008/
 """
 
 import os
 import cv2
 
-import projection_v2
+import projection
 
 
 # ============================================================
 # TASK B FOLDER
 # ============================================================
 
+# Get the folder where main.py is located.
 task_b_folder = os.path.dirname(
     os.path.abspath(__file__)
 )
 
 
 # ============================================================
-# FUNCTION: PROCESS ONE IMAGE
+# FUNCTION: PROCESS ONE PAPER IMAGE
 # ============================================================
 
 def process_image(image_name):
     """
     Process one scientific paper image.
 
-    image_name examples:
-        "001"
-        "002"
-        ...
-        "008"
+    Example:
+
+        image_name = "001"
+
+    reads:
+
+        input/001.png
+
+    and saves results into:
+
+        output/001/
     """
 
     print(
-        "Processing:",
+        "\nProcessing:",
         image_name + ".png"
     )
 
 
     # ========================================================
-    # CREATE INPUT PATH
+    # STEP 1: CREATE INPUT IMAGE PATH
     # ========================================================
 
     image_path = os.path.join(
@@ -75,7 +83,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # CREATE OUTPUT PATH
+    # STEP 2: CREATE OUTPUT FOLDER PATH
     # ========================================================
 
     output_folder = os.path.join(
@@ -91,16 +99,19 @@ def process_image(image_name):
 
 
     # ========================================================
-    # READ IMAGE
+    # STEP 3: READ IMAGE
     # ========================================================
 
     image = cv2.imread(
         image_path
     )
 
+    # Keep original image for paragraph cropping.
+    original = image.copy()
+
 
     # ========================================================
-    # CONVERT TO GRAYSCALE
+    # STEP 4: CONVERT TO GRAYSCALE
     # ========================================================
 
     gray = cv2.cvtColor(
@@ -110,29 +121,30 @@ def process_image(image_name):
 
 
     # ========================================================
-    # FIND OTSU THRESHOLD
+    # STEP 5: FIND OTSU THRESHOLD
     # ========================================================
 
+    # Otsu automatically finds the threshold value.
     otsu_value, otsu_image = cv2.threshold(
         gray,
         0,
         255,
-        cv2.THRESH_BINARY + cv2.THRESH_OTSU
+        cv2.THRESH_BINARY
+        + cv2.THRESH_OTSU
     )
 
     print(
-        image_name,
         "Otsu threshold:",
         otsu_value
     )
 
 
     # ========================================================
-    # APPLY BINARY THRESHOLD
+    # STEP 6: APPLY BINARY THRESHOLD
     # ========================================================
 
-    # Text becomes black.
-    # Background becomes white.
+    # Text becomes black = 0.
+    # Background becomes white = 255.
     threshold_value, binary = cv2.threshold(
         gray,
         otsu_value,
@@ -142,12 +154,17 @@ def process_image(image_name):
 
 
     # ========================================================
-    # ORIGINAL HISTOGRAM PROJECTIONS
+    # STEP 7: HORIZONTAL HISTOGRAM PROJECTION
     # ========================================================
 
     horizontal = projection.horizontal_projection(
         binary
     )
+
+
+    # ========================================================
+    # STEP 8: VERTICAL HISTOGRAM PROJECTION
+    # ========================================================
 
     vertical = projection.vertical_projection(
         binary
@@ -155,25 +172,29 @@ def process_image(image_name):
 
 
     # ========================================================
-    # DETECT HORIZONTAL TABLE LINES
+    # STEP 9: DETECT HORIZONTAL TABLE LINES
     # ========================================================
 
-    horizontal_lines = projection.horizontal_line_detection(
-        binary
+    horizontal_lines = (
+        projection.horizontal_line_detection(
+            binary
+        )
     )
 
 
     # ========================================================
-    # DETECT VERTICAL TABLE LINES
+    # STEP 10: DETECT VERTICAL TABLE LINES
     # ========================================================
 
-    vertical_lines = projection.vertical_line_detection(
-        binary
+    vertical_lines = (
+        projection.vertical_line_detection(
+            binary
+        )
     )
 
 
     # ========================================================
-    # COMBINE TABLE LINES
+    # STEP 11: COMBINE TABLE LINES
     # ========================================================
 
     table_lines = projection.combine_table_lines(
@@ -183,7 +204,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # REMOVE TABLE LINES
+    # STEP 12: REMOVE TABLE LINES
     # ========================================================
 
     clean_binary = projection.remove_table_lines(
@@ -193,12 +214,17 @@ def process_image(image_name):
 
 
     # ========================================================
-    # CLEAN HISTOGRAM PROJECTIONS
+    # STEP 13: CLEAN HORIZONTAL PROJECTION
     # ========================================================
 
     clean_horizontal = projection.horizontal_projection(
         clean_binary
     )
+
+
+    # ========================================================
+    # STEP 14: CLEAN VERTICAL PROJECTION
+    # ========================================================
 
     clean_vertical = projection.vertical_projection(
         clean_binary
@@ -206,7 +232,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # CREATE PARAGRAPH MASK
+    # STEP 15: CREATE PARAGRAPH MASK
     # ========================================================
 
     paragraph_mask = projection.create_paragraph_mask(
@@ -215,7 +241,159 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE BINARY IMAGE
+    # STEP 16: FIND CONNECTED PARAGRAPH REGIONS
+    # ========================================================
+
+    number_labels, labels, stats, centroids = (
+        cv2.connectedComponentsWithStats(
+            paragraph_mask,
+            connectivity=8
+        )
+    )
+
+
+    # ========================================================
+    # STEP 17: REMOVE BACKGROUND REGION
+    # ========================================================
+
+    # Label 0 represents the image background.
+    stats = stats[
+        1:
+    ]
+
+
+    # ========================================================
+    # STEP 18: REMOVE SMALL / NOISE REGIONS
+    # ========================================================
+
+    valid_regions = (
+
+        (stats[:, cv2.CC_STAT_WIDTH] > 250)
+
+        &
+
+        (stats[:, cv2.CC_STAT_HEIGHT] > 50)
+
+        &
+
+        (stats[:, cv2.CC_STAT_AREA] > 10000)
+
+    )
+
+    paragraph_stats = stats[
+        valid_regions
+    ]
+
+
+    # ========================================================
+    # STEP 19: SORT PARAGRAPHS
+    # ========================================================
+
+    sorted_stats = projection.sort_paragraphs(
+        paragraph_stats
+    )
+
+
+    # ========================================================
+    # STEP 20: PREPARE DETECTION IMAGE
+    # ========================================================
+
+    detected = original.copy()
+
+
+    # ========================================================
+    # STEP 21: EXTRACT AND SAVE PARAGRAPHS
+    # ========================================================
+
+    for paragraph_number, paragraph in enumerate(
+        sorted_stats,
+        start=1
+    ):
+
+
+        # ----------------------------------------------------
+        # Get paragraph position.
+        # ----------------------------------------------------
+
+        x = paragraph[
+            cv2.CC_STAT_LEFT
+        ]
+
+        y = paragraph[
+            cv2.CC_STAT_TOP
+        ]
+
+
+        # ----------------------------------------------------
+        # Get paragraph size.
+        # ----------------------------------------------------
+
+        width = paragraph[
+            cv2.CC_STAT_WIDTH
+        ]
+
+        height = paragraph[
+            cv2.CC_STAT_HEIGHT
+        ]
+
+
+        # ----------------------------------------------------
+        # Crop paragraph from original paper.
+        # ----------------------------------------------------
+
+        paragraph_image = original[
+            y:y + height,
+            x:x + width
+        ]
+
+
+        # ----------------------------------------------------
+        # Create paragraph filename.
+        # ----------------------------------------------------
+
+        paragraph_path = os.path.join(
+            output_folder,
+            "paragraph_"
+            + str(paragraph_number)
+            + ".png"
+        )
+
+
+        # ----------------------------------------------------
+        # Save paragraph.
+        # ----------------------------------------------------
+
+        cv2.imwrite(
+            paragraph_path,
+            paragraph_image
+        )
+
+
+        # ----------------------------------------------------
+        # Draw bounding rectangle.
+        # ----------------------------------------------------
+
+        cv2.rectangle(
+            detected,
+            (
+                x,
+                y
+            ),
+            (
+                x + width,
+                y + height
+            ),
+            (
+                0,
+                0,
+                255
+            ),
+            3
+        )
+
+
+    # ========================================================
+    # STEP 22: SAVE BINARY IMAGE
     # ========================================================
 
     cv2.imwrite(
@@ -228,7 +406,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE HORIZONTAL TABLE LINES
+    # STEP 23: SAVE HORIZONTAL LINES
     # ========================================================
 
     cv2.imwrite(
@@ -241,7 +419,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE VERTICAL TABLE LINES
+    # STEP 24: SAVE VERTICAL LINES
     # ========================================================
 
     cv2.imwrite(
@@ -254,7 +432,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE COMBINED TABLE LINES
+    # STEP 25: SAVE TABLE LINES
     # ========================================================
 
     cv2.imwrite(
@@ -267,7 +445,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE CLEAN BINARY IMAGE
+    # STEP 26: SAVE CLEAN BINARY IMAGE
     # ========================================================
 
     cv2.imwrite(
@@ -280,7 +458,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE PARAGRAPH MASK
+    # STEP 27: SAVE PARAGRAPH MASK
     # ========================================================
 
     cv2.imwrite(
@@ -293,12 +471,26 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE HORIZONTAL PROJECTION
+    # STEP 28: SAVE DETECTED PARAGRAPHS
+    # ========================================================
+
+    cv2.imwrite(
+        os.path.join(
+            output_folder,
+            "detected_paragraphs.png"
+        ),
+        detected
+    )
+
+
+    # ========================================================
+    # STEP 29: SAVE ORIGINAL HORIZONTAL PROJECTION
     # ========================================================
 
     projection.save_projection(
         horizontal,
-        image_name + " Horizontal Histogram Projection",
+        image_name
+        + " Horizontal Histogram Projection",
         "Image Row",
         os.path.join(
             output_folder,
@@ -308,12 +500,13 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE VERTICAL PROJECTION
+    # STEP 30: SAVE ORIGINAL VERTICAL PROJECTION
     # ========================================================
 
     projection.save_projection(
         vertical,
-        image_name + " Vertical Histogram Projection",
+        image_name
+        + " Vertical Histogram Projection",
         "Image Column",
         os.path.join(
             output_folder,
@@ -323,12 +516,13 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE CLEAN HORIZONTAL PROJECTION
+    # STEP 31: SAVE CLEAN HORIZONTAL PROJECTION
     # ========================================================
 
     projection.save_projection(
         clean_horizontal,
-        image_name + " Horizontal Projection After Table Removal",
+        image_name
+        + " Clean Horizontal Projection",
         "Image Row",
         os.path.join(
             output_folder,
@@ -338,12 +532,13 @@ def process_image(image_name):
 
 
     # ========================================================
-    # SAVE CLEAN VERTICAL PROJECTION
+    # STEP 32: SAVE CLEAN VERTICAL PROJECTION
     # ========================================================
 
     projection.save_projection(
         clean_vertical,
-        image_name + " Vertical Projection After Table Removal",
+        image_name
+        + " Clean Vertical Projection",
         "Image Column",
         os.path.join(
             output_folder,
@@ -352,9 +547,83 @@ def process_image(image_name):
     )
 
 
+    # ========================================================
+    # STEP 33: DISPLAY RESULTS
+    # ========================================================
+
+    # Convert original BGR image to RGB.
+    image_rgb = cv2.cvtColor(
+        original,
+        cv2.COLOR_BGR2RGB
+    )
+
+    # Convert detected image to RGB.
+    detected_rgb = cv2.cvtColor(
+        detected,
+        cv2.COLOR_BGR2RGB
+    )
+
+
+    projection.show_image(
+        image_rgb,
+        "Original Paper - " + image_name
+    )
+
+    projection.show_image(
+        gray,
+        "Grayscale Image - " + image_name,
+        "gray"
+    )
+
+    projection.show_image(
+        binary,
+        "Binary Image - " + image_name,
+        "gray"
+    )
+
+    projection.show_image(
+        paragraph_mask,
+        "Paragraph Mask - " + image_name,
+        "gray"
+    )
+
+    projection.show_image(
+        detected_rgb,
+        "Detected Paragraphs - " + image_name
+    )
+
+
+    # ========================================================
+    # STEP 34: DISPLAY HISTOGRAM PROJECTIONS
+    # ========================================================
+
+    projection.show_projection(
+        horizontal,
+        "Horizontal Histogram Projection - "
+        + image_name,
+        "Image Row"
+    )
+
+    projection.show_projection(
+        vertical,
+        "Vertical Histogram Projection - "
+        + image_name,
+        "Image Column"
+    )
+
+
+    # ========================================================
+    # STEP 35: PRINT RESULT
+    # ========================================================
+
+    print(
+        "Number of detected paragraphs:",
+        len(sorted_stats)
+    )
+
     print(
         image_name,
-        "complete."
+        "processing complete."
     )
 
 
@@ -435,5 +704,5 @@ process_image(
 # ============================================================
 
 print(
-    "All Task B images have been processed."
+    "\nAll Task B images have been processed."
 )
