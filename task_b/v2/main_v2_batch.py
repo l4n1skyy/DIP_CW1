@@ -1,112 +1,23 @@
 # -*- coding: utf-8 -*-
-
-"""
-Task B - Paragraph Extraction
-
-Batch Processing Version
-
-The program processes:
-
-    001.png
-    002.png
-    003.png
-    004.png
-    005.png
-    006.png
-    007.png
-    008.png
-
-Input images are stored inside:
-
-    input/
-
-Results are stored inside:
-
-    output/001/
-    output/002/
-    ...
-    output/008/
-"""
-
 import os
 import cv2
-import numpy as np
 import projection_v2
 
-
-# ============================================================
-# TASK B FOLDER
-# ============================================================
-
-# Get the folder where main.py is located.
+#Get the folder where main.py is located.
 task_b_folder = os.path.dirname(
     os.path.abspath(__file__)
 )
 
 
-# ============================================================
-# FUNCTION: PROCESS ONE PAPER IMAGE
-# ============================================================
-
+#file path opening shenanigans using os
 def process_image(image_name):
-    """
-    Process one scientific paper image.
+    print("\nProcessing:",image_name + ".png")
 
-    Example:
+    image_path = os.path.join(task_b_folder,"input",image_name + ".png")
 
-        image_name = "001"
-
-    reads:
-
-        input/001.png
-
-    and saves results into:
-
-        output/001/
-    """
-
-    print(
-        "\nProcessing:",
-        image_name + ".png"
-    )
-
-
-    # ========================================================
-    # STEP 1: CREATE INPUT IMAGE PATH
-    # ========================================================
-
-    image_path = os.path.join(
-        task_b_folder,
-        "input",
-        image_name + ".png"
-    )
-
-
-    # ========================================================
-    # STEP 2: CREATE OUTPUT FOLDER PATH
-    # ========================================================
-
-    output_folder = os.path.join(
-        task_b_folder,
-        "output",
-        image_name
-    )
-
-    os.makedirs(
-        output_folder,
-        exist_ok=True
-    )
-
-
-    # ========================================================
-    # STEP 3: READ IMAGE
-    # ========================================================
-
-    image = cv2.imread(
-        image_path
-    )
-
-    # Keep original image for paragraph cropping.
+    #reding the iamge
+    image = cv2.imread(image_path)
+    #keeping the original image for paragraph cropping.
     original = image.copy()
 
 
@@ -202,15 +113,15 @@ def process_image(image_name):
         vertical_lines
     )
 
+    table_mask = projection_v2.create_table_region_mask(
+        table_lines
+    )
 
     # ========================================================
     # STEP 12: REMOVE TABLE LINES
     # ========================================================
 
-    clean_binary = projection_v2.remove_table_lines(
-        binary,
-        table_lines
-    )
+    clean_binary = projection_v2.remove_table_region(binary,table_mask)
 
 
     # ========================================================
@@ -353,29 +264,20 @@ def process_image(image_name):
             y:y + height,
             x:x + width
         ]
+        # Convert extracted paragraph to RGB.
+        paragraph_rgb = cv2.cvtColor(
+            paragraph_image,
+            cv2.COLOR_BGR2RGB
+        )
 
-
-        # ----------------------------------------------------
-        # Create paragraph filename.
-        # ----------------------------------------------------
-
-        paragraph_path = os.path.join(
-            output_folder,
-            "paragraph_"
+        # Display extracted paragraph.
+        projection_v2.show_image(
+            paragraph_rgb,
+            "Paragraph "
             + str(paragraph_number)
-            + ".png"
+            + " - "
+            + image_name
         )
-
-
-        # ----------------------------------------------------
-        # Save paragraph.
-        # ----------------------------------------------------
-
-        cv2.imwrite(
-            paragraph_path,
-            paragraph_image
-        )
-
 
         # ----------------------------------------------------
         # Draw bounding rectangle.
@@ -398,194 +300,78 @@ def process_image(image_name):
             ),
             3
         )
-
-
-    # ========================================================
-    # STEP 22: SAVE BINARY IMAGE
-    # ========================================================
-
-    cv2.imwrite(
-        os.path.join(
-            output_folder,
-            "binary.png"
-        ),
-        binary
-    )
-
-
-    # ========================================================
-    # STEP 23: SAVE HORIZONTAL LINES
-    # ========================================================
-
-    cv2.imwrite(
-        os.path.join(
-            output_folder,
-            "horizontal_lines.png"
-        ),
-        horizontal_lines
-    )
-
-
-    # ========================================================
-    # STEP 24: SAVE VERTICAL LINES
-    # ========================================================
-
-    cv2.imwrite(
-        os.path.join(
-            output_folder,
-            "vertical_lines.png"
-        ),
-        vertical_lines
-    )
-
-
-    # ========================================================
-    # STEP 25: SAVE TABLE LINES
-    # ========================================================
-
-    cv2.imwrite(
-        os.path.join(
-            output_folder,
-            "table_lines.png"
-        ),
-        table_lines
-    )
-
-
-    # ========================================================
-    # STEP 26: SAVE CLEAN BINARY IMAGE
-    # ========================================================
-
-    cv2.imwrite(
-        os.path.join(
-            output_folder,
-            "clean_binary.png"
-        ),
-        clean_binary
-    )
-
-
-    # ========================================================
-    # STEP 27: SAVE PARAGRAPH MASK
-    # ========================================================
-
-    cv2.imwrite(
-        os.path.join(
-            output_folder,
-            "paragraph_mask.png"
-        ),
-        paragraph_mask
-    )
-
-
-    # ========================================================
-    # STEP 28: SAVE DETECTED PARAGRAPHS
-    # ========================================================
-
-    cv2.imwrite(
-        os.path.join(
-            output_folder,
-            "detected_paragraphs.png"
-        ),
-        detected
-    )
-
-
-    # ========================================================
-    # STEP 29: SAVE ORIGINAL HORIZONTAL PROJECTION
-    # ========================================================
-
-    projection_v2.save_projection(
-        horizontal,
-        image_name
-        + " Horizontal Histogram Projection",
-        "Image Row",
-        os.path.join(
-            output_folder,
-            "horizontal_projection.png"
-        )
-    )
-
-
-    # ========================================================
-    # STEP 30: SAVE ORIGINAL VERTICAL PROJECTION
-    # ========================================================
-
-    projection_v2.save_projection(
-        vertical,
-        image_name
-        + " Vertical Histogram Projection",
-        "Image Column",
-        os.path.join(
-            output_folder,
-            "vertical_projection.png"
-        )
-    )
-
-
-    # ========================================================
-    # STEP 31: SAVE CLEAN HORIZONTAL PROJECTION
-    # ========================================================
-
-    projection_v2.save_projection(
-        clean_horizontal,
-        image_name
-        + " Clean Horizontal Projection",
-        "Image Row",
-        os.path.join(
-            output_folder,
-            "clean_horizontal_projection.png"
-        )
-    )
-
-
-    # ========================================================
-    # STEP 32: SAVE CLEAN VERTICAL PROJECTION
-    # ========================================================
-
-    projection_v2.save_projection(
-        clean_vertical,
-        image_name
-        + " Clean Vertical Projection",
-        "Image Column",
-        os.path.join(
-            output_folder,
-            "clean_vertical_projection.png"
-        )
-    )
-
     #==============
     #output segment
     #==============
-    image_rgb = cv2.cvtColor(
+
+    #ommmited declarations
+    # Convert original image from BGR to RGB for Matplotlib.
+    original_rgb = cv2.cvtColor(
         original,
         cv2.COLOR_BGR2RGB
     )
+
+    # Convert detected image from BGR to RGB for Matplotlib.
     detected_rgb = cv2.cvtColor(
         detected,
         cv2.COLOR_BGR2RGB
     )
-
-
+        # Original paper.
     projection_v2.show_image(
-        image_rgb,
-        "Original Paper - " + image_name
+            original_rgb,
+            "Original Paper - " + image_name
+        )
+
+
+    # Grayscale image.
+    projection_v2.show_image(
+        gray,
+        "Grayscale Image - " + image_name,
+        "gray"
     )
 
-    projection_v2.show_image(gray,"Grayscale Image - " + image_name,"gray")
 
+    # Binary image.
     projection_v2.show_image(
         binary,
         "Binary Image - " + image_name,
         "gray"
     )
 
+
+    # Horizontal and vertical table lines combined.
+    projection_v2.show_image(
+        table_lines,
+        "Detected Table Lines - " + image_name,
+        "gray"
+    )
+
+
+    # Complete table regions.
+    projection_v2.show_image(
+        table_mask,
+        "Detected Table Region - " + image_name,
+        "gray"
+    )
+
+
+    # Image after tables are removed.
+    projection_v2.show_image(
+        clean_binary,
+        "Image After Table Removal - " + image_name,
+        "gray"
+    )
+
+
+    # Paragraph mask after dilation.
     projection_v2.show_image(
         paragraph_mask,
         "Paragraph Mask - " + image_name,
         "gray"
     )
 
+
+    # Final detected paragraphs.
     projection_v2.show_image(
         detected_rgb,
         "Detected Paragraphs - " + image_name
@@ -593,7 +379,7 @@ def process_image(image_name):
 
 
     # ========================================================
-    # STEP 34: DISPLAY HISTOGRAM PROJECTIONS
+    # STEP 24: DISPLAY HISTOGRAM PROJECTIONS
     # ========================================================
 
     projection_v2.show_projection(

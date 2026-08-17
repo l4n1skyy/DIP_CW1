@@ -159,21 +159,103 @@ def combine_table_lines(horizontal_lines, vertical_lines):
 
 
 # ============================================================
-# FUNCTION 6: REMOVE TABLE LINES
+# CREATE FULL TABLE REGION
 # ============================================================
 
-def remove_table_lines(binary_image, table_lines):
+def create_table_region_mask(table_lines):
     """
-    Remove detected table lines from the binary image.
+    Detect the complete area occupied by a table.
+
+    The full table area is filled so that both
+    the table lines and the text inside the table
+    can be removed.
     """
 
-    # Convert black text into white foreground.
+    # Find connected table-line regions.
+    number_labels, labels, stats, centroids = (
+        cv2.connectedComponentsWithStats(
+            table_lines,
+            connectivity=8
+        )
+    )
+
+    # Remove background.
+    stats = stats[1:]
+
+    # Get page size.
+    page_height, page_width = table_lines.shape
+
+    # A table should have noticeable width and height.
+    valid_tables = (
+        (stats[:, cv2.CC_STAT_WIDTH]
+         > page_width * 0.15)
+        &
+        (stats[:, cv2.CC_STAT_HEIGHT]
+         > page_height * 0.02)
+    )
+
+    table_stats = stats[
+        valid_tables
+    ]
+
+    # Create empty table mask.
+    table_mask = np.zeros_like(
+        table_lines
+    )
+
+    # Fill each detected table area.
+    for table in table_stats:
+
+        x = table[
+            cv2.CC_STAT_LEFT
+        ]
+
+        y = table[
+            cv2.CC_STAT_TOP
+        ]
+
+        width = table[
+            cv2.CC_STAT_WIDTH
+        ]
+
+        height = table[
+            cv2.CC_STAT_HEIGHT
+        ]
+
+        cv2.rectangle(
+            table_mask,
+            (x, y),
+            (
+                x + width - 1,
+                y + height - 1
+            ),
+            255,
+            -1
+        )
+
+    return table_mask
+
+
+# ============================================================
+# REMOVE FULL TABLE REGION
+# ============================================================
+
+def remove_table_region(
+        binary_image,
+        table_mask
+):
+    """
+    Remove both the table lines and the
+    text inside the table.
+    """
+
+    # Convert text into white foreground.
     foreground = 255 - binary_image
 
-    # Remove the detected table lines.
+    # Remove everything inside table area.
     clean_foreground = cv2.subtract(
         foreground,
-        table_lines
+        table_mask
     )
 
     # Return to black text on white background.
@@ -323,7 +405,7 @@ def sort_paragraphs(paragraph_stats):
     # --------------------------------------------------------
     # Estimate the gap between document columns.
     # --------------------------------------------------------
-
+    
     gap_threshold = max(
         np.median(paragraph_width) * 0.6,
         80
@@ -334,88 +416,37 @@ def sort_paragraphs(paragraph_stats):
     # Create column numbers.
     # --------------------------------------------------------
 
-    sorted_columns = np.zeros(
-        len(sorted_centres),
-        dtype=int
-    )
-
+    sorted_columns = np.zeros(len(sorted_centres),dtype=int)
     column_number = 0
 
-
-    # --------------------------------------------------------
-    # Detect large gaps between columns.
-    # --------------------------------------------------------
-
+    #the following codes are used to detect large gaps between columns
     for position, gap in enumerate(centre_gaps):
 
         if gap > gap_threshold:
+            
+            column_number = (column_number + 1)
+            
+        sorted_columns[position + 1] = column_number
 
-            column_number = (
-                column_number + 1
-            )
+    #puts numbers into columns
+    column_ids = np.zeros(len(x_centre),dtype=int)
+    column_ids[x_order] = sorted_columns
 
-        sorted_columns[
-            position + 1
-        ] = column_number
-
-
-    # --------------------------------------------------------
-    # Put column numbers back into original order.
-    # --------------------------------------------------------
-
-    column_ids = np.zeros(
-        len(x_centre),
-        dtype=int
-    )
-
-    column_ids[
-        x_order
-    ] = sorted_columns
-
-
-    # --------------------------------------------------------
-    # Sort by column first and y position second.
-    # --------------------------------------------------------
-
-    reading_order = np.lexsort(
-        (
-            y_position,
-            column_ids
-        )
-    )
-
-    sorted_stats = paragraph_stats[
-        reading_order
-    ]
-
+    #these make sure that the code sorts by columns first
+    reading_order = np.lexsort((y_position,column_ids))
+    sorted_stats = paragraph_stats[ reading_order]
     return sorted_stats
 
 
-# ============================================================
-# FUNCTION 9: SHOW IMAGE
-# ============================================================
-
 def show_image(image, title, colour_map=None):
-    """
-    Display an image using Matplotlib.
-    """
 
-    plt.figure(
-        figsize=(10, 12)
-    )
+    plt.figure(figsize=(10, 12))
 
-    plt.imshow(
-        image,
-        cmap=colour_map
-    )
+    plt.imshow(image,cmap=colour_map)
 
-    plt.title(
-        title
-    )
+    plt.title(title)
 
-    plt.axis(
-        "off"
-    )
+    plt.axis("off")
 
     plt.tight_layout()
 
@@ -454,46 +485,3 @@ def show_projection(projection_values, title, axis_name):
     plt.tight_layout()
 
     plt.show()
-
-
-# ============================================================
-# FUNCTION 11: SAVE HISTOGRAM PROJECTION
-# ============================================================
-
-def save_projection(
-        projection_values,
-        title,
-        axis_name,
-        filename
-):
-    """
-    Save a histogram projection as an image.
-    """
-
-    plt.figure(
-        figsize=(10, 4)
-    )
-
-    plt.plot(
-        projection_values
-    )
-
-    plt.title(
-        title
-    )
-
-    plt.xlabel(
-        axis_name
-    )
-
-    plt.ylabel(
-        "Number of Black Pixels"
-    )
-
-    plt.tight_layout()
-
-    plt.savefig(
-        filename
-    )
-
-    plt.close()
