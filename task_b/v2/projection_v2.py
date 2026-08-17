@@ -281,7 +281,7 @@ def create_paragraph_mask(binary_image):
 
     # Create rectangular structuring element.
     paragraph_se = np.ones(
-        (20, 25),
+        (30, 25),
         dtype=np.uint8
     )
 
