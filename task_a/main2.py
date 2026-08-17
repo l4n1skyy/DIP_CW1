@@ -1,7 +1,8 @@
 import os
 import cv2
-from brightnessJordan import detect_brightness, adjust_brightness
+from brightness import detect_brightness, adjust_brightness
 from face_blur import blur_faces
+from overlay import overlay_talking,add_watermark
 
 INPUT_DIR = "input"
 OUTPUT_DIR = "output"
@@ -29,6 +30,8 @@ def process_video(input_path, output_path):
     print(f"Video properties: fps={fps}, width={width}, height={height}, total_frames={total_frames}")
     frame_count = 0
 
+    talking_vid = cv2.VideoCapture("./input/talking.mp4")
+
     for frame in range(0, total_frames):
         #Jump to the specific frame and read it
         video.set(cv2.CAP_PROP_POS_FRAMES, frame) 
@@ -36,13 +39,31 @@ def process_video(input_path, output_path):
         if not sucess:
             print(f"Failed to read frame {frame} from {input_path}")
             break
+        # talking_vid.set(cv2.CAP_PROP_POS_FRAMES,frame)
 
         #If night time, adjust brightness
         if night:
             image = adjust_brightness(image)
 
+        #blur faces
         image = blur_faces(image)
 
+        #alternating water mark based on frame 
+        watermark1 = cv2.imread('./assets/watermark1.png')
+        watermark2 = cv2.imread('./assets/watermark2.png')
+        block = int(fps * 10)
+
+        if (frame_count // block) % 2 == 0:
+            watermark = watermark1
+        else:
+            watermark = watermark2
+
+        image = add_watermark(image, watermark, 0, 0, 0.2)
+
+        #adding overlay
+        success_talk, talk_frame = talking_vid.read()
+        if success_talk:
+            image = overlay_talking(image,talk_frame)
         output.write(image)
 
         frame_count += 1

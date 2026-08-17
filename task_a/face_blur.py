@@ -8,7 +8,7 @@ def blur_faces(frame):
     #equalize the histogram to perform contrast stretching
     gray = cv2.equalizeHist(gray)
     #detect faces using the cascadeclassifier with scaleFactor 1.1 
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4,minSize=(40,40))
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
     for x, y, w, h in faces:
         frame[y : y + h, x : x + w] = cv2.GaussianBlur(
             frame[y : y + h, x : x + w], (51, 51), 30

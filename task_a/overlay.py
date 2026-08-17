@@ -1,11 +1,8 @@
 import cv2
 
-def overlay_talking(frame, talk_vid, pip_w=320, pip_h=180):
-    success, talk_frame = talk_vid.read()
-    if not success:
-        talk_vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        success, talk_frame = talk_vid.read()
+def overlay_talking(frame, talk_frame, pip_w=320, pip_h=180):
     frame[0:pip_h, 0:pip_w] = cv2.resize(talk_frame, (pip_w, pip_h))
+    cv2.rectangle(frame, (0, 0), (pip_w - 1, pip_h - 1), (0, 0, 0), 3)
     return frame
 
 
