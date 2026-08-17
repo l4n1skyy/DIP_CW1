@@ -4,21 +4,29 @@ from brightness import detect_brightness, adjust_brightness
 from face_blur import blur_faces
 from overlay import overlay_talking,add_watermark
 
+#INPUT DIRECTORY NAME
 INPUT_DIR = "input"
+#OUTPUT DIRECTORY NAME
 OUTPUT_DIR = "output"
 
+#Function to start video processing
 def process_video(input_path, output_path):
     print(f"Processing {input_path}...")
     print(f"Output will be saved to {output_path}")
     print(f"Editing Video...")
+    #call detect brightness to determine time of day
     night = detect_brightness(input_path)
 
 
-    #Get video properties for output
+    #Read the Video
     video = cv2.VideoCapture(input_path)
+    #Get Video FPS
     fps = video.get(cv2.CAP_PROP_FPS)
+    #Get Video Width
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    #Get Video Height
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    #Get total number of frames
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         
     #Create output video writer
@@ -28,18 +36,22 @@ def process_video(input_path, output_path):
                         (width, height))
     
     print(f"Video properties: fps={fps}, width={width}, height={height}, total_frames={total_frames}")
+
+    #Read video of the girl talking
+    talking_vid = cv2.VideoCapture("./input/talking.mp4")
+    #Initalize the frame counter variable
     frame_count = 0
 
-    talking_vid = cv2.VideoCapture("./input/talking.mp4")
-
+    #iterate over each frame and perform processing on each frame
     for frame in range(0, total_frames):
         #Jump to the specific frame and read it
         video.set(cv2.CAP_PROP_POS_FRAMES, frame) 
+        #Read the current frame
         sucess, image = video.read()
+        #If we fail to read the file, throw error
         if not sucess:
             print(f"Failed to read frame {frame} from {input_path}")
             break
-        # talking_vid.set(cv2.CAP_PROP_POS_FRAMES,frame)
 
         #If night time, adjust brightness
         if night:
@@ -48,7 +60,7 @@ def process_video(input_path, output_path):
         #blur faces
         image = blur_faces(image)
 
-        #alternating water mark based on frame 
+        #alternate between watermark every 10 seconds
         watermark1 = cv2.imread('./assets/watermark1.png')
         watermark2 = cv2.imread('./assets/watermark2.png')
         block = int(fps * 10)
@@ -62,6 +74,7 @@ def process_video(input_path, output_path):
 
         #adding overlay
         success_talk, talk_frame = talking_vid.read()
+        #if the duration of the talking video is shorter than the video being processed
         if success_talk:
             image = overlay_talking(image,talk_frame)
         output.write(image)
