@@ -95,4 +95,3 @@ def show_projection(projection_values, title, axis_name):
     plt.ylabel("Number of Black Text Pixels")
     plt.tight_layout()
     plt.show()
-

@@ -1,5 +1,4 @@
 import os
-import glob
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
@@ -255,11 +254,13 @@ if __name__ == "__main__":
     # image (slow / annoying for a batch run) -- False just saves files.
     SHOW_PLOTS = False
 
-    image_paths = sorted(
-        glob.glob(os.path.join(input_dir, "*.png"))
-        + glob.glob(os.path.join(input_dir, "*.jpg"))
-        + glob.glob(os.path.join(input_dir, "*.jpeg"))
-    )
+    all_files = sorted(os.listdir(input_dir))
+    valid_extensions = (".png", ".jpg", ".jpeg")
+    image_paths = [
+        os.path.join(input_dir, filename)
+        for filename in all_files
+        if filename.lower().endswith(valid_extensions)
+    ]
 
     if not image_paths:
         raise FileNotFoundError(f"No images found in {input_dir}")
