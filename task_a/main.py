@@ -1,6 +1,7 @@
 import os
 import cv2
 from brightness import is_nighttime, adjust_brightness
+from face_blur import blur_faces
 
 INPUT_DIR = "input"
 OUTPUT_DIR = "output"
@@ -20,14 +21,16 @@ def process_video(input_path, output_path):
         output_path, cv2.VideoWriter_fourcc(*"MJPG"), fps, (width, height)
     )
 
-    for _ in range(total_frames):
+    while True:
         success, frame = vid.read()
         if not success:
             break
         if night:
             frame = adjust_brightness(frame)
-        out.write(frame)
+        blur_faces(frame)
+        # out.write(frame)
 
+    print(f"{input_path} written")
     vid.release()
     out.release()
 
