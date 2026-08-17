@@ -212,6 +212,58 @@ def create_paragraph_mask(binary_image):
 
     return paragraph_mask
 
+#bug fix function for images
+def remove_color_regions(
+        original_image,
+        paragraph_stats,
+        saturation_threshold=15
+):
+    #this converts the images in #png 004 and 007 to HSV format
+    hsv_image = cv2.cvtColor(original_image,cv2.COLOR_BGR2HSV)
+
+    saturation = hsv_image[:,:,1]#what.?
+
+    #store data into array or something
+    is_text = [] #feels like javascript
+
+    #check detected paragragh regions
+    for paragraph in paragraph_stats:
+
+        #these get the paragraph position
+        x=paragraph[cv2.CC_STAT_LEFT]
+        y=paragraph[cv2.CC_STAT_TOP]
+
+        #these gets the paragraph size
+        width = paragraph[cv2.CC_STAT_WIDTH]
+        height = paragraph[cv2.CC_STAT_HEIGHT]
+
+        #these gets the saturation value inside detected region
+        region_saturation = saturation[y:y + height, x:x + width]
+
+        #this calculates
+# Calculate the average saturation.
+        mean_saturation = np.mean(
+            region_saturation
+        )
+
+        # Low saturation is more likely to be text.
+        is_text.append(
+            mean_saturation
+            < saturation_threshold
+        )
+
+        # Convert the results into a NumPy Boolean array.
+        is_text = np.array(
+            is_text,
+            dtype=bool
+        )
+
+        # Keep only the regions classified as text.
+        filtered_stats = paragraph_stats[
+            is_text
+        ]
+
+        return filtered_stats
 
 # ============================================================
 # FUNCTION 8: SORT PARAGRAPHS

@@ -30,8 +30,8 @@ Results are stored inside:
 
 import os
 import cv2
-
-import projection
+import numpy as np
+import projection_v2
 
 
 # ============================================================
@@ -157,7 +157,7 @@ def process_image(image_name):
     # STEP 7: HORIZONTAL HISTOGRAM PROJECTION
     # ========================================================
 
-    horizontal = projection.horizontal_projection(
+    horizontal = projection_v2.horizontal_projection(
         binary
     )
 
@@ -166,7 +166,7 @@ def process_image(image_name):
     # STEP 8: VERTICAL HISTOGRAM PROJECTION
     # ========================================================
 
-    vertical = projection.vertical_projection(
+    vertical = projection_v2.vertical_projection(
         binary
     )
 
@@ -176,7 +176,7 @@ def process_image(image_name):
     # ========================================================
 
     horizontal_lines = (
-        projection.horizontal_line_detection(
+        projection_v2.horizontal_line_detection(
             binary
         )
     )
@@ -187,7 +187,7 @@ def process_image(image_name):
     # ========================================================
 
     vertical_lines = (
-        projection.vertical_line_detection(
+        projection_v2.vertical_line_detection(
             binary
         )
     )
@@ -197,7 +197,7 @@ def process_image(image_name):
     # STEP 11: COMBINE TABLE LINES
     # ========================================================
 
-    table_lines = projection.combine_table_lines(
+    table_lines = projection_v2.combine_table_lines(
         horizontal_lines,
         vertical_lines
     )
@@ -207,7 +207,7 @@ def process_image(image_name):
     # STEP 12: REMOVE TABLE LINES
     # ========================================================
 
-    clean_binary = projection.remove_table_lines(
+    clean_binary = projection_v2.remove_table_lines(
         binary,
         table_lines
     )
@@ -217,7 +217,7 @@ def process_image(image_name):
     # STEP 13: CLEAN HORIZONTAL PROJECTION
     # ========================================================
 
-    clean_horizontal = projection.horizontal_projection(
+    clean_horizontal = projection_v2.horizontal_projection(
         clean_binary
     )
 
@@ -226,7 +226,7 @@ def process_image(image_name):
     # STEP 14: CLEAN VERTICAL PROJECTION
     # ========================================================
 
-    clean_vertical = projection.vertical_projection(
+    clean_vertical = projection_v2.vertical_projection(
         clean_binary
     )
 
@@ -235,7 +235,7 @@ def process_image(image_name):
     # STEP 15: CREATE PARAGRAPH MASK
     # ========================================================
 
-    paragraph_mask = projection.create_paragraph_mask(
+    paragraph_mask = projection_v2.create_paragraph_mask(
         clean_binary
     )
 
@@ -284,12 +284,20 @@ def process_image(image_name):
         valid_regions
     ]
 
+#bug fix for color images
+    paragraph_stats = projection_v2.remove_colour_regions(
+    original,
+    paragraph_stats,
+    saturation_threshold=15
+)
 
+
+    
     # ========================================================
     # STEP 19: SORT PARAGRAPHS
     # ========================================================
 
-    sorted_stats = projection.sort_paragraphs(
+    sorted_stats = projection_v2.sort_paragraphs(
         paragraph_stats
     )
 
@@ -487,7 +495,7 @@ def process_image(image_name):
     # STEP 29: SAVE ORIGINAL HORIZONTAL PROJECTION
     # ========================================================
 
-    projection.save_projection(
+    projection_v2.save_projection(
         horizontal,
         image_name
         + " Horizontal Histogram Projection",
@@ -503,7 +511,7 @@ def process_image(image_name):
     # STEP 30: SAVE ORIGINAL VERTICAL PROJECTION
     # ========================================================
 
-    projection.save_projection(
+    projection_v2.save_projection(
         vertical,
         image_name
         + " Vertical Histogram Projection",
@@ -519,7 +527,7 @@ def process_image(image_name):
     # STEP 31: SAVE CLEAN HORIZONTAL PROJECTION
     # ========================================================
 
-    projection.save_projection(
+    projection_v2.save_projection(
         clean_horizontal,
         image_name
         + " Clean Horizontal Projection",
@@ -535,7 +543,7 @@ def process_image(image_name):
     # STEP 32: SAVE CLEAN VERTICAL PROJECTION
     # ========================================================
 
-    projection.save_projection(
+    projection_v2.save_projection(
         clean_vertical,
         image_name
         + " Clean Vertical Projection",
@@ -564,30 +572,30 @@ def process_image(image_name):
     )
 
 
-    projection.show_image(
+    projection_v2.show_image(
         image_rgb,
         "Original Paper - " + image_name
     )
 
-    projection.show_image(
+    projection_v2.show_image(
         gray,
         "Grayscale Image - " + image_name,
         "gray"
     )
 
-    projection.show_image(
+    projection_v2.show_image(
         binary,
         "Binary Image - " + image_name,
         "gray"
     )
 
-    projection.show_image(
+    projection_v2.show_image(
         paragraph_mask,
         "Paragraph Mask - " + image_name,
         "gray"
     )
 
-    projection.show_image(
+    projection_v2.show_image(
         detected_rgb,
         "Detected Paragraphs - " + image_name
     )
@@ -597,14 +605,14 @@ def process_image(image_name):
     # STEP 34: DISPLAY HISTOGRAM PROJECTIONS
     # ========================================================
 
-    projection.show_projection(
+    projection_v2.show_projection(
         horizontal,
         "Horizontal Histogram Projection - "
         + image_name,
         "Image Row"
     )
 
-    projection.show_projection(
+    projection_v2.show_projection(
         vertical,
         "Vertical Histogram Projection - "
         + image_name,
@@ -616,93 +624,14 @@ def process_image(image_name):
     # STEP 35: PRINT RESULT
     # ========================================================
 
-    print(
-        "Number of detected paragraphs:",
-        len(sorted_stats)
-    )
-
-    print(
-        image_name,
-        "processing complete."
-    )
-
-
-# ============================================================
-# PROCESS 001
-# ============================================================
-
-process_image(
-    "001"
-)
-
-
-# ============================================================
-# PROCESS 002
-# ============================================================
-
-process_image(
-    "002"
-)
-
-
-# ============================================================
-# PROCESS 003
-# ============================================================
-
-process_image(
-    "003"
-)
-
-
-# ============================================================
-# PROCESS 004
-# ============================================================
-
-process_image(
-    "004"
-)
-
-
-# ============================================================
-# PROCESS 005
-# ============================================================
-
-process_image(
-    "005"
-)
-
-
-# ============================================================
-# PROCESS 006
-# ============================================================
-
-process_image(
-    "006"
-)
-
-
-# ============================================================
-# PROCESS 007
-# ============================================================
-
-process_image(
-    "007"
-)
-
-
-# ============================================================
-# PROCESS 008
-# ============================================================
-
-process_image(
-    "008"
-)
-
-
-# ============================================================
-# FINAL OUTPUT
-# ============================================================
-
-print(
-    "\nAll Task B images have been processed."
-)
+    print("Number of detected paragraphs:", len(sorted_stats))
+    print(image_name, "processing complete.")
+process_image("001")
+process_image("002")
+process_image("003")
+process_image("004")
+process_image("005")
+process_image("006")
+process_image("007")
+process_image("008")
+print("\nAll Task B images have been processed.")
