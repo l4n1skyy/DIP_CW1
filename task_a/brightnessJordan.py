@@ -23,54 +23,26 @@ def detect_brightness(video_path):
             dark_pixels = sum(histogram[i][0] for i in range(0, 81))
             pixels = gray_scale_frame.shape[0] * gray_scale_frame.shape[1]
 
-            total_pixels += pixels
             total_dark_pixels += dark_pixels
+            total_pixels += pixels
     
     darkness_ratio = total_dark_pixels/total_pixels
 
     #Returns true if video is night
     if darkness_ratio > 0.6:
         print("Video is night")
-        adjust_brightness(video_path)
+        return True
     else:
         print("Video is day")
+        return False
 
-
-
-def adjust_brightness(video_path):
-     # Get video properties for output
-    fps = video.get(cv2.CAP_PROP_FPS)
-    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-    # Create output video writer
-    output = cv2.VideoWriter("task_a/output",
-                          cv2.VideoWriter_fourcc(*'MJPG'),
-                          fps,
-                          (width, height))
-    
-    print("Adjusting brightness")
-    # Open the video file and get number of frames
-    video = cv2.VideoCapture(video_path)
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-
-    for frame in range(0, total_frames):
-        # Jump to the specific frame and read it
-        video.set(cv2.CAP_PROP_POS_FRAMES, frame) 
-        image = video.read()
-
+def adjust_brightness(frame):
         #Add brightness
-        image_float = image.astype(np.float64)
+        image_float = frame.astype(np.float64)
         brightened_image = image_float + 50
         brightened_image = np.clip(brightened_image, 0, 255)
         brightened_image = brightened_image.astype(np.uint8)
+        return brightened_image
 
-        output.write(brightened_image)
-
-
-def run_brightness_process(video_path): 
-    print("Running brightness detection on video")
-    detect_brightness(video_path)
 
 

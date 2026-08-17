@@ -2,7 +2,6 @@ import cv2
 
 face_cascade = cv2.CascadeClassifier("face_detector.xml")
 
-
 def blur_faces(frame):
     #load the frame as gray scale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

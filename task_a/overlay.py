@@ -1,6 +1,5 @@
 import cv2
 
-
 def overlay_talking(frame, talk_vid, pip_w=320, pip_h=180):
     success, talk_frame = talk_vid.read()
     if not success:
