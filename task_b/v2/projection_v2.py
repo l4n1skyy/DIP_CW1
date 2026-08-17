@@ -240,8 +240,7 @@ def remove_color_regions(
         #these gets the saturation value inside detected region
         region_saturation = saturation[y:y + height, x:x + width]
 
-        #this calculates
-# Calculate the average saturation.
+        #this calculates the average saturation.
         mean_saturation = np.mean(
             region_saturation
         )
@@ -252,18 +251,13 @@ def remove_color_regions(
             < saturation_threshold
         )
 
-        # Convert the results into a NumPy Boolean array.
-        is_text = np.array(
-            is_text,
-            dtype=bool
-        )
+    # Convert the results into a NumPy Boolean array.
+    is_text = np.array(is_text, dtype=bool)
 
-        # Keep only the regions classified as text.
-        filtered_stats = paragraph_stats[
-            is_text
-        ]
+    # Keep only the regions classified as text.
+    filtered_stats = paragraph_stats[is_text]
 
-        return filtered_stats
+    return filtered_stats
 
 # ============================================================
 # FUNCTION 8: SORT PARAGRAPHS

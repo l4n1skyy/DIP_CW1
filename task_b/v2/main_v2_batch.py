@@ -285,7 +285,7 @@ def process_image(image_name):
     ]
 
 #bug fix for color images
-    paragraph_stats = projection_v2.remove_colour_regions(
+    paragraph_stats = projection_v2.remove_color_regions(
     original,
     paragraph_stats,
     saturation_threshold=15
@@ -554,18 +554,13 @@ def process_image(image_name):
         )
     )
 
-
-    # ========================================================
-    # STEP 33: DISPLAY RESULTS
-    # ========================================================
-
-    # Convert original BGR image to RGB.
+    #==============
+    #output segment
+    #==============
     image_rgb = cv2.cvtColor(
         original,
         cv2.COLOR_BGR2RGB
     )
-
-    # Convert detected image to RGB.
     detected_rgb = cv2.cvtColor(
         detected,
         cv2.COLOR_BGR2RGB
@@ -577,11 +572,7 @@ def process_image(image_name):
         "Original Paper - " + image_name
     )
 
-    projection_v2.show_image(
-        gray,
-        "Grayscale Image - " + image_name,
-        "gray"
-    )
+    projection_v2.show_image(gray,"Grayscale Image - " + image_name,"gray")
 
     projection_v2.show_image(
         binary,
