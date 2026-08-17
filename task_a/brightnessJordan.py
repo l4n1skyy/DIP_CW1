@@ -20,7 +20,7 @@ def detect_brightness(video_path):
             histogram = cv2.calcHist([gray_scale_frame], [0], None, [256], [0, 256])
 
             # Count pixels in dark range (0-80) and total pixels
-            dark_pixels = sum(histogram[i][0] for i in range(0, 81))
+            dark_pixels = sum(histogram[i] for i in range(0, 81))
             pixels = gray_scale_frame.shape[0] * gray_scale_frame.shape[1]
 
             total_dark_pixels += dark_pixels
@@ -29,7 +29,7 @@ def detect_brightness(video_path):
     darkness_ratio = total_dark_pixels/total_pixels
 
     #Returns true if video is night
-    if darkness_ratio > 0.6:
+    if darkness_ratio > 0.5:
         print("Video is night")
         return True
     else:

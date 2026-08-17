@@ -7,9 +7,14 @@ INPUT_DIR = "input"
 OUTPUT_DIR = "output"
 
 def process_video(input_path, output_path):
+    print(f"Processing {input_path}...")
+    print(f"Output will be saved to {output_path}")
+    print(f"Editing Video...")
     night = detect_brightness(input_path)
 
+
     #Get video properties for output
+    video = cv2.VideoCapture(input_path)
     fps = video.get(cv2.CAP_PROP_FPS)
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -20,10 +25,9 @@ def process_video(input_path, output_path):
                         cv2.VideoWriter_fourcc(*'MJPG'),
                         fps,
                         (width, height))
-        
-    #Open the video file and get number of frames
-    video = cv2.VideoCapture(input_path)
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    print(f"Video properties: fps={fps}, width={width}, height={height}, total_frames={total_frames}")
+    frame_count = 0
 
     for frame in range(0, total_frames):
         #Jump to the specific frame and read it
@@ -41,6 +45,9 @@ def process_video(input_path, output_path):
 
         output.write(image)
 
+        frame_count += 1
+        if frame_count % 100 == 0:
+            print(f"Processed {frame_count}/{total_frames} frames")
 
 if __name__ == "__main__":
     for filename in os.listdir(INPUT_DIR):
