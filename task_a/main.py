@@ -63,30 +63,40 @@ def process_video(input_path, output_path):
         watermark2 = cv2.imread('./assets/watermark2.png')
         block = int(fps * 10)
 
+        #if it is an even 10 seconds block use watermark1
+        #else use watermark2
         if (frame_count // block) % 2 == 0:
             watermark = watermark1
         else:
             watermark = watermark2
-
+            
+        #call add_watermark function with x,y position of 0,0 
+        #x and y is the location to put the watermark on the frame
         image = add_watermark(image, watermark, 0, 0, 0.2)
 
         #adding overlay
         success_talk, talk_frame = talking_vid.read()
-        #if the duration of the talking video is shorter than the video being processed
+        #check if the duration of the talking video is shorter than the video being processed
         if success_talk:
             image = overlay_talking(image,talk_frame)
+        
+        #write the processed frame to the output video
         output.write(image)
 
+        #increment the frame counter
         frame_count += 1
+        #display number of frames processed every 100 frames 
         if frame_count % 100 == 0:
             print(f"Processed {frame_count}/{total_frames} frames")
 
 if __name__ == "__main__":
+    #Iterate over each file in inputs directory
     for filename in os.listdir(INPUT_DIR):
-        if filename == "talking.mp4":
-            continue
+        #prepend the filename with the input path
         input_path = os.path.join(INPUT_DIR, filename)
+        #extract the filename from the input file
         name, _ = os.path.splitext(filename)
+        #prepend the filename with the output path
         output_path = os.path.join(OUTPUT_DIR, f"{name}_processed.avi")
         process_video(input_path, output_path)
     
