@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+
+"""this is the main code to run to precess the images in batch ,a single se version was scraped"""
 import os
 import cv2
 import projection_v2
 
-#Get the folder where main.py is located.
+#gets the folder where main.py is located.
+#what is this even for?
 task_b_folder = os.path.dirname(
     os.path.abspath(__file__)
 )
@@ -12,171 +15,43 @@ task_b_folder = os.path.dirname(
 #file path opening shenanigans using os
 def process_image(image_name):
     print("\nProcessing:",image_name + ".png")
+    image_path = os.path.join(task_b_folder,"input",image_name + ".png") #what-??
 
-    image_path = os.path.join(task_b_folder,"input",image_name + ".png")
+    image = cv2.imread(image_path)                  #read image
+    original = image.copy()                         #keeping the original image for paragraph cropping.
+    gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)   #makes image grayscale
 
-    #reding the iamge
-    image = cv2.imread(image_path)
-    #keeping the original image for paragraph cropping.
-    original = image.copy()
+    #Finding otsu threshold
+    #Otsu automatically finds the threshold value
+    otsu_value = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+ cv2.THRESH_OTSU)
+    print("Otsu threshold:", otsu_value)
 
+    #the text becomes black = 0.
+    #background becomes white = 255.
+    binary = cv2.threshold(gray,otsu_value,255,cv2.THRESH_BINARY) #binary threshold shenanigans
 
-    # ========================================================
-    # STEP 4: CONVERT TO GRAYSCALE
-    # ========================================================
-
-    gray = cv2.cvtColor(
-        image,
-        cv2.COLOR_BGR2GRAY
-    )
-
-
-    # ========================================================
-    # STEP 5: FIND OTSU THRESHOLD
-    # ========================================================
-
-    # Otsu automatically finds the threshold value.
-    otsu_value, otsu_image = cv2.threshold(
-        gray,
-        0,
-        255,
-        cv2.THRESH_BINARY
-        + cv2.THRESH_OTSU
-    )
-
-    print(
-        "Otsu threshold:",
-        otsu_value
-    )
+    #histogram projection
+    horizontal = projection_v2.horizontal_projection(binary)
+    vertical = projection_v2.vertical_projection(binary)
+    horizontal_lines = (projection_v2.horizontal_line_detection(binary))
+    vertical_lines = (projection_v2.vertical_line_detection(binary))
 
 
-    # ========================================================
-    # STEP 6: APPLY BINARY THRESHOLD
-    # ========================================================
-
-    # Text becomes black = 0.
-    # Background becomes white = 255.
-    threshold_value, binary = cv2.threshold(
-        gray,
-        otsu_value,
-        255,
-        cv2.THRESH_BINARY
-    )
-
-
-    # ========================================================
-    # STEP 7: HORIZONTAL HISTOGRAM PROJECTION
-    # ========================================================
-
-    horizontal = projection_v2.horizontal_projection(
-        binary
-    )
-
-
-    # ========================================================
-    # STEP 8: VERTICAL HISTOGRAM PROJECTION
-    # ========================================================
-
-    vertical = projection_v2.vertical_projection(
-        binary
-    )
-
-
-    # ========================================================
-    # STEP 9: DETECT HORIZONTAL TABLE LINES
-    # ========================================================
-
-    horizontal_lines = (
-        projection_v2.horizontal_line_detection(
-            binary
-        )
-    )
-
-
-    # ========================================================
-    # STEP 10: DETECT VERTICAL TABLE LINES
-    # ========================================================
-
-    vertical_lines = (
-        projection_v2.vertical_line_detection(
-            binary
-        )
-    )
-
-
-    # ========================================================
-    # STEP 11: COMBINE TABLE LINES
-    # ========================================================
-
-    table_lines = projection_v2.combine_table_lines(
-        horizontal_lines,
-        vertical_lines
-    )
-
-    table_mask = projection_v2.create_table_region_mask(
-        table_lines
-    )
-
-    # ========================================================
-    # STEP 12: REMOVE TABLE LINES
-    # ========================================================
-
+    # table detection segment + removing table lines 
+    # because there was a bug for the red rectangle generation where small random gaps 
+    # were detected as a paragrapgh making the code not accurate
+    table_lines = projection_v2.combine_table_lines(horizontal_lines,vertical_lines)
+    table_mask = projection_v2.create_table_region_mask(table_lines)
     clean_binary = projection_v2.remove_table_region(binary,table_mask)
 
-
-    # ========================================================
-    # STEP 13: CLEAN HORIZONTAL PROJECTION
-    # ========================================================
-
-    clean_horizontal = projection_v2.horizontal_projection(
-        clean_binary
-    )
+    #paragrapgh detection segment
+    paragraph_mask = projection_v2.create_paragraph_mask(clean_binary)
+    stats = (cv2.connectedComponentsWithStats(paragraph_mask,connectivity=8))
+    stats = stats[1:]
 
 
-    # ========================================================
-    # STEP 14: CLEAN VERTICAL PROJECTION
-    # ========================================================
-
-    clean_vertical = projection_v2.vertical_projection(
-        clean_binary
-    )
-
-
-    # ========================================================
-    # STEP 15: CREATE PARAGRAPH MASK
-    # ========================================================
-
-    paragraph_mask = projection_v2.create_paragraph_mask(
-        clean_binary
-    )
-
-
-    # ========================================================
-    # STEP 16: FIND CONNECTED PARAGRAPH REGIONS
-    # ========================================================
-
-    number_labels, labels, stats, centroids = (
-        cv2.connectedComponentsWithStats(
-            paragraph_mask,
-            connectivity=8
-        )
-    )
-
-
-    # ========================================================
-    # STEP 17: REMOVE BACKGROUND REGION
-    # ========================================================
-
-    # Label 0 represents the image background.
-    stats = stats[
-        1:
-    ]
-
-
-    # ========================================================
-    # STEP 18: REMOVE SMALL / NOISE REGIONS
-    # ========================================================
-
+    #noise removal section
+    #used because the code did bug out and detected every single group of text as a paragrapgh without this (GeeksForGeeks, 2026)
     valid_regions = (
 
         (stats[:, cv2.CC_STAT_WIDTH] > 250)
@@ -195,82 +70,39 @@ def process_image(image_name):
         valid_regions
     ]
 
-#bug fix for color images
+#bug fix for color images (GeeksForGeeks, 2026)
     paragraph_stats = projection_v2.remove_color_regions(
-    original,
-    paragraph_stats,
-    saturation_threshold=15
-)
-
-
+        original,
+        paragraph_stats,
+        saturation_threshold=15)
     
-    # ========================================================
-    # STEP 19: SORT PARAGRAPHS
-    # ========================================================
+    sorted_stats = projection_v2.sort_paragraphs(paragraph_stats) #this sorts the paragrapgh from projection_v2.py
+    detected = original.copy() #this prepares the detected image for display
 
-    sorted_stats = projection_v2.sort_paragraphs(
-        paragraph_stats
-    )
-
-
-    # ========================================================
-    # STEP 20: PREPARE DETECTION IMAGE
-    # ========================================================
-
-    detected = original.copy()
-
-
-    # ========================================================
-    # STEP 21: EXTRACT AND SAVE PARAGRAPHS
-    # ========================================================
-
+    #paragrapgh extraction , a loop is used to reduce redundant code
     for paragraph_number, paragraph in enumerate(
         sorted_stats,
-        start=1
-    ):
+        start=1):
 
+        #gets the position of each paragrapgh
+        x = paragraph[cv2.CC_STAT_LEFT]
+        y = paragraph[ cv2.CC_STAT_TOP]
+        #determines paragrapgh size
+        width = paragraph[cv2.CC_STAT_WIDTH]
+        height = paragraph[cv2.CC_STAT_HEIGHT]
 
-        # ----------------------------------------------------
-        # Get paragraph position.
-        # ----------------------------------------------------
-
-        x = paragraph[
-            cv2.CC_STAT_LEFT
-        ]
-
-        y = paragraph[
-            cv2.CC_STAT_TOP
-        ]
-
-
-        # ----------------------------------------------------
-        # Get paragraph size.
-        # ----------------------------------------------------
-
-        width = paragraph[
-            cv2.CC_STAT_WIDTH
-        ]
-
-        height = paragraph[
-            cv2.CC_STAT_HEIGHT
-        ]
-
-
-        # ----------------------------------------------------
-        # Crop paragraph from original paper.
-        # ----------------------------------------------------
-
+        #crops the paragrapgh size (GeeksForGeeks, 2026)
         paragraph_image = original[
             y:y + height,
             x:x + width
         ]
-        # Convert extracted paragraph to RGB.
+        #Convert extracted paragraph to RGB.
         paragraph_rgb = cv2.cvtColor(
             paragraph_image,
             cv2.COLOR_BGR2RGB
         )
 
-        # Display extracted paragraph.
+        #Display extracted paragraph.
         projection_v2.show_image(
             paragraph_rgb,
             "Paragraph "
@@ -279,10 +111,7 @@ def process_image(image_name):
             + image_name
         )
 
-        # ----------------------------------------------------
-        # Draw bounding rectangle.
-        # ----------------------------------------------------
-
+        #this code is used to make the red outer bound rectangle
         cv2.rectangle(
             detected,
             (
@@ -300,30 +129,30 @@ def process_image(image_name):
             ),
             3
         )
+    
     #==============
     #output segment
     #==============
 
-    #ommmited declarations
-    # Convert original image from BGR to RGB for Matplotlib.
+    #Convert original image from BGR to RGB for Matplotlib
     original_rgb = cv2.cvtColor(
         original,
         cv2.COLOR_BGR2RGB
     )
 
-    # Convert detected image from BGR to RGB for Matplotlib.
+    #Convert detected image from BGR to RGB for Matplotlib
     detected_rgb = cv2.cvtColor(
         detected,
         cv2.COLOR_BGR2RGB
     )
-        # Original paper.
+        #Original paper
     projection_v2.show_image(
             original_rgb,
             "Original Paper - " + image_name
         )
 
 
-    # Grayscale image.
+    #Grayscale image
     projection_v2.show_image(
         gray,
         "Grayscale Image - " + image_name,
@@ -331,7 +160,7 @@ def process_image(image_name):
     )
 
 
-    # Binary image.
+    #Binary image
     projection_v2.show_image(
         binary,
         "Binary Image - " + image_name,
@@ -339,7 +168,7 @@ def process_image(image_name):
     )
 
 
-    # Horizontal and vertical table lines combined.
+    #Horizontal and vertical table lines combined
     projection_v2.show_image(
         table_lines,
         "Detected Table Lines - " + image_name,
@@ -347,7 +176,7 @@ def process_image(image_name):
     )
 
 
-    # Complete table regions.
+    #Complete table regions
     projection_v2.show_image(
         table_mask,
         "Detected Table Region - " + image_name,
@@ -355,7 +184,7 @@ def process_image(image_name):
     )
 
 
-    # Image after tables are removed.
+    #Image after tables are removed
     projection_v2.show_image(
         clean_binary,
         "Image After Table Removal - " + image_name,
@@ -363,7 +192,7 @@ def process_image(image_name):
     )
 
 
-    # Paragraph mask after dilation.
+    #Paragraph mask after dilation
     projection_v2.show_image(
         paragraph_mask,
         "Paragraph Mask - " + image_name,
@@ -371,7 +200,7 @@ def process_image(image_name):
     )
 
 
-    # Final detected paragraphs.
+    #Final detected paragraphs
     projection_v2.show_image(
         detected_rgb,
         "Detected Paragraphs - " + image_name
@@ -396,11 +225,7 @@ def process_image(image_name):
         "Image Column"
     )
 
-
-    # ========================================================
-    # STEP 35: PRINT RESULT
-    # ========================================================
-
+###final output section
     print("Number of detected paragraphs:", len(sorted_stats))
     print(image_name, "processing complete.")
 process_image("001")
