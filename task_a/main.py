@@ -45,7 +45,7 @@ def process_video(input_path, output_path):
     #iterate over each frame and perform processing on each frame
     for frame in range(0, total_frames):
         #Jump to the specific frame and read it
-        video.set(cv2.CAP_PROP_POS_FRAMES, frame) 
+        # video.set(cv2.CAP_PROP_POS_FRAMES, frame) 
         #Read the current frame
         sucess, image = video.read()
         #If we fail to read the file, throw error
