@@ -23,12 +23,12 @@ def process_image(image_name):
 
     #Finding otsu threshold
     #Otsu automatically finds the threshold value
-    otsu_value = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+ cv2.THRESH_OTSU)
+    otsu_value , _ = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+ cv2.THRESH_OTSU)
     print("Otsu threshold:", otsu_value)
 
     #the text becomes black = 0.
     #background becomes white = 255.
-    binary = cv2.threshold(gray,otsu_value,255,cv2.THRESH_BINARY) #binary threshold shenanigans
+    _, binary = cv2.threshold(gray,otsu_value,255,cv2.THRESH_BINARY) #binary threshold shenanigans
 
     #histogram projection
     horizontal = projection_v2.horizontal_projection(binary)
@@ -46,7 +46,7 @@ def process_image(image_name):
 
     #paragrapgh detection segment
     paragraph_mask = projection_v2.create_paragraph_mask(clean_binary)
-    stats = (cv2.connectedComponentsWithStats(paragraph_mask,connectivity=8))
+    _, _, stats, _ = (cv2.connectedComponentsWithStats(paragraph_mask,connectivity=8))
     stats = stats[1:]
 
 
@@ -228,6 +228,7 @@ def process_image(image_name):
 ###final output section
     print("Number of detected paragraphs:", len(sorted_stats))
     print(image_name, "processing complete.")
+
 process_image("001")
 process_image("002")
 process_image("003")

@@ -86,7 +86,7 @@ def combine_table_lines(horizontal_lines, vertical_lines):
 
 #this creates the full table region
 def create_table_region_mask(table_lines):
-    stats= (cv2.connectedComponentsWithStats(table_lines,connectivity=8))  #finds the connected table-line regions.
+    _, _, stats, _= (cv2.connectedComponentsWithStats(table_lines,connectivity=8))  #finds the connected table-line regions.
     stats = stats[1:]                                                      #this removes the background.
     page_height, page_width = table_lines.shape                            #gets the page size
 
