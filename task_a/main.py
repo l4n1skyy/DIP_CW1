@@ -3,6 +3,7 @@ import cv2
 from brightness import detect_brightness, adjust_brightness
 from face_blur import blur_faces
 from overlay import overlay_talking,add_watermark
+from endscreen import append_endscreen
 
 #INPUT DIRECTORY NAME
 INPUT_DIR = "input"
@@ -88,6 +89,10 @@ def process_video(input_path, output_path):
         #display number of frames processed every 100 frames 
         if frame_count % 100 == 0:
             print(f"Processed {frame_count}/{total_frames} frames")
+
+    #add the endscreen video after finishing all main frames
+    append_endscreen(output, "./assets/endscreen.mp4")
+
 
 if __name__ == "__main__":
     #Iterate over each file in inputs directory
