@@ -1,24 +1,21 @@
 # -*- coding: utf-8 -*-
 
 """this is the main code to run to precess the images in batch ,a single se version was scraped"""
-import os
 import cv2
+import numpy as np
 import projection_v2
 
-#gets the folder where main.py is located.
-#what is this even for?
-task_b_folder = os.path.dirname(
-    os.path.abspath(__file__)
-)
 
-
-#file path opening shenanigans using os
+#gets and reads the images
 def process_image(image_name):
-    print("\nProcessing:",image_name + ".png")
-    image_path = os.path.join(task_b_folder,"input",image_name + ".png") #what-??
-
+    image_path = "task_b/v2/input/" + image_name + ".png"     #gets image from folder
     image = cv2.imread(image_path)                  #read image
+
+    if image is None:
+        print("Error: Could not read", image_path)
+        return
     original = image.copy()                         #keeping the original image for paragraph cropping.
+
     gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)   #makes image grayscale
 
     #Finding otsu threshold
