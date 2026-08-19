@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""this is the main code to run to precess the images in batch ,a single se version was scraped"""
+"""this is the main code to run to precess the images in batch ,a single use version was scraped"""
 import cv2
 import numpy as np
 import projection_v2
